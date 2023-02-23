@@ -28,6 +28,7 @@ The data needs to be in format "subject in group in condition".
 | 17 | 2     | 1         | 0.66   | 0.786      | 12.5       | 5          | 0.26       | 127.8      | 49.0       |
 | 17 | 2     | 2         | 0.27   | 0.378      | 12.0       | 4          | 0.96       | 245.3      | 78.1       |
 
+If you have missing values, you need to either exclude cases or use an imputation method to replace the missing values. 
 
 ## regular behavior PLS
 This approach is data-driven. 
