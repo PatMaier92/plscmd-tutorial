@@ -1,9 +1,9 @@
 # plscmd-tutorial
 Tutorial for how to do Partial Least Square Correlation (PLSC) with the plscmd toolbox (http://www.rotman-baycrest.on.ca/pls) in Matlab. 
 
-PLSC is a multivariate correlation method (Krishnan, Williams, McIntosh & Abdi, 2011) to analyze associations between two sets of variables. We focus on behavior PLSC here i.e., correlations between behavior and brain data, or two types of behavioral data (for other variants like task, seed or multi-block PLSC, see Krishnan et al., 2011). Cite Muelroth & Keresztes paper. 
+PLSC is a multivariate correlation method (Krishnan, Williams, McIntosh & Abdi, 2011) to analyze associations between two sets of variables. We focus on behavior PLSC here i.e., correlations between behavior and brain data, or two types of behavioral data (for other variants like task, seed or multi-block PLSC, see Krishnan et al., 2011) and we explore data-driven and confirmatory versions of behavior PLSC. If you use brain data, you may use the plsgui toolbox, which is pretty well-documented on http://www.rotman-baycrest.on.ca/pls. However, if you want to use any other type of data, you will need to use the plscmd toolbox, which is not so well documented. This tutorial was inspired by code from Muelroth et al. (2020; available on https://osf.io/w76f3/) and Keresztes et al. (2017).
 
-First, we need to download the plscmd package from http://www.rotman-baycrest.on.ca/pls to our analysis folder and add it to our path in Matlab. 
+First, we need to download the plscmd package from http://www.rotman-baycrest.on.ca/pls and add it to our path in Matlab. 
 
 ```
 addpath(genpath(pwd))
@@ -35,12 +35,6 @@ This approach is data-driven.
 
 ### data preparation
 ```
-cfg.pls = [];
-cfg.pls.method   = 3; % regular behavior PLS
-cfg.pls.num_perm = 500;  % number of permutations
-cfg.pls.num_boot = 5000; % number of bootstrap tests
-cfg.pls.clim     = 95; % confidence interval level
-
 % outcome behavioral data
 plsinput.y = data(:,4);
 
@@ -54,23 +48,26 @@ plsinput.X = zscore(plsinput.X,0,1);
 
 ### running the plsc 
 ```
-% set behavioral data
+% configuration
+cfg.pls = [];
+cfg.pls.method   = 3; % regular behavior PLS
+cfg.pls.num_perm = 500;  % number of permutations
+cfg.pls.num_boot = 5000; % number of bootstrap tests
+cfg.pls.clim     = 95; % confidence interval level
 cfg.pls.stacked_behavdata = plsinput.y;
     
-% set condition number  
+% condition number  
 n_con = 2; % condition
     
-% set group number
-n_subj = histc(data(:,2),unique(data(:,2))) / n_con; % condition, group
-    
-% set data 
+% group number
+n_subj = histc(data(:,2),unique(data(:,2))) / n_con; % condition, group 
 datamat1_group1 = plsinput.X(1:n_subj(1),:);
 datamat1_group2 = plsinput.X(n_subj(1)+1:n_subj(1)+n_subj(2),:);
 datamat1_group3 = plsinput.X(n_subj(1)+n_subj(2)+1:end,:);
     
 % run plsc 
 % input arguments: data, number of subjects, number of conditions, specific settings
-plsres = pls_analysis({ datamat1_group1,datamat1_group2,datamat1_group3 }, n_subj, n_con, cfg.pls);
+plsres = pls_analysis({ datamat1_group1, datamat1_group2, datamat1_group3 }, n_subj, n_con, cfg.pls);
 ```
 
 ### interpreting the output 
@@ -129,12 +126,6 @@ This approach is confirmatory and uses pre-defined contrasts.
 
 ### data preparation
 ```
-cfg.pls = [];
-cfg.pls.method   = 5; % non-rotated behavior PLS
-cfg.pls.num_perm = 500;  % number of permutations
-cfg.pls.num_boot = 5000; % number of bootstrap tests
-cfg.pls.clim     = 95; % confidence interval level
-
 % outcome behavioral data
 plsinput.y = data(:,4);
 
@@ -148,24 +139,27 @@ plsinput.X = zscore(plsinput.X,0,1);
 
 ### running the plsc 
 ```
-% set behavioral data
+% configuration
+cfg.pls = [];
+cfg.pls.method   = 5; % non-rotated behavior PLS
+cfg.pls.num_perm = 500;  % number of permutations
+cfg.pls.num_boot = 5000; % number of bootstrap tests
+cfg.pls.clim     = 95; % confidence interval level
 cfg.pls.stacked_behavdata = plsinput.y;
     
-% set condition number  
+% condition number  
 n_con = 2; % condition
 cfg.pls.stacked_designdata=[1; -1]; % contrasts 
 %     n_con = 4; % condition
 %     cfg.pls.stacked_designdata=[1 -1 1 -1]; 
     
-% set group number
+% group number
 n_subj = histc(data(:,2),unique(data(:,2))) / n_con; % condition, group
-    
-% set data 
 datamat1_group1 = plsinput.X(1:n_subj(1),:);
 datamat1_group2 = plsinput.X(n_subj(1)+1:n_subj(1)+n_subj(2),:);
 datamat1_group3 = plsinput.X(n_subj(1)+n_subj(2)+1:end,:);
     
 % run plsc 
 % input arguments: data, number of subjects, number of conditions, specific settings
-plsres = pls_analysis({ datamat1_group1,datamat1_group2,datamat1_group3 }, n_subj, n_con, cfg.pls);
+plsres = pls_analysis({ datamat1_group1, datamat1_group2, datamat1_group3 }, n_subj, n_con, cfg.pls);
 ```
