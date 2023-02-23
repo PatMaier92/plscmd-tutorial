@@ -5,9 +5,11 @@ PLSC is a multivariate correlation method (Krishnan, Williams, McIntosh & Abdi, 
 
 First, we need to download the plscmd package from http://www.rotman-baycrest.on.ca/pls to our analysis folder and add it to our path in Matlab. 
 
+```
 addpath(genpath(pwd))
 
 load(['data.mat']);
+```
 
 The data needs to be in format "subject in group in condition".
 
@@ -31,6 +33,7 @@ The data needs to be in format "subject in group in condition".
 This approach is data-driven. 
 
 ### data preparation
+```
 cfg.pls = [];
 cfg.pls.method   = 3; % regular behavior PLS
 cfg.pls.num_perm = 500;  % number of permutations
@@ -46,8 +49,10 @@ plsinput.X = data(:,5:size(data,2));
 % z-standardization
 plsinput.y = zscore(plsinput.y,0,1);
 plsinput.X = zscore(plsinput.X,0,1);
+```
 
 ### running the plsc 
+```
 % set behavioral data
 cfg.pls.stacked_behavdata = plsinput.y;
     
@@ -65,8 +70,10 @@ datamat1_group3 = plsinput.X(n_subj(1)+n_subj(2)+1:end,:);
 % run plsc 
 % input arguments: data, number of subjects, number of conditions, specific settings
 plsres = pls_analysis({ datamat1_group1,datamat1_group2,datamat1_group3 }, n_subj, n_con, cfg.pls);
+```
 
 ### interpreting the output 
+```
 % Latent variable (LV) significance (only interpret LVs < 0.05)
 plsres.perm_result.sprob
 
@@ -114,12 +121,13 @@ title(strcat('r=',num2str(R(2,1)),', p=',num2str(P(2,1))));
 
 % Save data
 save(['PLSC_full_results.mat'],'plsres');
-
+```
 
 ## non-rotated (constraint) behavior PLS
 This approach is confirmatory and uses pre-defined contrasts. 
 
 ### data preparation
+```
 cfg.pls = [];
 cfg.pls.method   = 5; % non-rotated behavior PLS
 cfg.pls.num_perm = 500;  % number of permutations
@@ -135,8 +143,10 @@ plsinput.X = data(:,5:size(data,2));
 % z-standardization
 plsinput.y = zscore(plsinput.y,0,1);
 plsinput.X = zscore(plsinput.X,0,1);
+```
 
 ### running the plsc 
+```
 % set behavioral data
 cfg.pls.stacked_behavdata = plsinput.y;
     
@@ -157,3 +167,4 @@ datamat1_group3 = plsinput.X(n_subj(1)+n_subj(2)+1:end,:);
 % run plsc 
 % input arguments: data, number of subjects, number of conditions, specific settings
 plsres = pls_analysis({ datamat1_group1,datamat1_group2,datamat1_group3 }, n_subj, n_con, cfg.pls);
+```
