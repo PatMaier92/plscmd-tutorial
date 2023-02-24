@@ -13,7 +13,7 @@ load(['data.mat']);
 
 The data needs to be in format "subject in group in condition".
 
-| id | group | condition | memory | predictor1 | predictor2 | predictor3 | predictor4 | predictor5 | predictor6 |
+| id | group | condition | outcome| predictor1 | predictor2 | predictor3 | predictor4 | predictor5 | predictor6 |
 | -- | ----- | --------- | ------ | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- |
 | 1  | 1     | 1         | 0.64   | 0.126      | 10.5       | 5          | 0.97       | 105.7      | 77.6       |
 | 1  | 1     | 2         | 0.56   | 0.567      | 10.9       | 3          | 0.53       | 202.6      | 89.0       |
@@ -48,77 +48,76 @@ plsinput.X = zscore(plsinput.X,0,1);
 
 ### running the plsc 
 ```
-% configuration
+% configuration 
 cfg.pls = [];
-cfg.pls.method   = 3; % regular behavior PLS
-cfg.pls.num_perm = 500;  % number of permutations
-cfg.pls.num_boot = 5000; % number of bootstrap tests
-cfg.pls.clim     = 95; % confidence interval level
-cfg.pls.stacked_behavdata = plsinput.y;
+cfg.pls.num_perm 	= 500;  	% number of permutations
+cfg.pls.num_boot 	= 500; 		% number of bootstrap tests
+cfg.pls.clim     	= 95; 		% confidence interval level
+cfg.pls.stacked_behavdata = plsinput.y;	% outcome data 
+cfg.pls.method   	= 3; 		% regular behavior PLS
     
-% condition number  
-n_con = 2; % condition
+% number of conditions
+n_con = 1; % condition
     
-% group number
-n_subj = histc(data(:,2),unique(data(:,2))) / n_con; % condition, group 
-datamat1_group1 = plsinput.X(1:n_subj(1),:);
-datamat1_group2 = plsinput.X(n_subj(1)+1:n_subj(1)+n_subj(2),:);
-datamat1_group3 = plsinput.X(n_subj(1)+n_subj(2)+1:end,:);
+% number of subjects and data preparation
+n_subj = size(plsinput.y,1) / n_con;
+datamat1_allgroups = plsinput.X;
     
 % run plsc 
 % input arguments: data, number of subjects, number of conditions, specific settings
-plsres = pls_analysis({ datamat1_group1, datamat1_group2, datamat1_group3 }, n_subj, n_con, cfg.pls);
+plsres = pls_analysis({ datamat1_allgroups }, n_subj, n_con, cfg.pls);
+
+save(['PLSC_full_results.mat'], 'plsres');
 ```
 
 ### interpreting the output 
 ```
 % Latent variable (LV) significance (only interpret LVs < 0.05)
-plsres.perm_result.sprob
-
-% Latent variable weights / Bootstrap ratios (BSR) (< -1.96 or > +1.96 is considered significant)
+p=plsres.perm_result.sprob; 
 LV_n = 1;
 
+% Latent variable weights 
+% Bootstrap ratios (BSR) (should be < -1.96 or > +1.96)
+% correlations with behavioral data and standard error
+BSR = plsres.boot_result.compare_u(:,LV_n);
+cor = plsres.datamatcorrs_lst{1,1}'; % u = plsres.u(:,LV_n); 
+se = plsres.boot_result.u_se(:,LV_n); 
+
 figure; subplot(1,2,1);
-bar(plsres.boot_result.compare_u(:,LV_n),'k'); hold on;
-set(gca,'xticklabels',{'predictor1','predictor2','predictor3','predictor4','predictor5', 'predictor6'}, 'fontsize', 12);
+n_dim=numel(cor);
+bar(BSR(:),'k'); hold on;
+set(gca,'xticklabels',{'behavior1','behavior2','behavior3','behavior4','behavior5', 'behavior6'});
 box off; grid on;
-lh = line([0,size(plsres.boot_result.compare_u,1)+1],[2,2]);
+lh = line([0,size(BSR,1)+1],[2,2]);
 set(lh, 'color','r','linestyle','--');
-lh = line([0,size(plsres.boot_result.compare_u,1)+1],[-2,-2]);
+lh = line([0,size(BSR,1)+1],[-2,-2]);
 set(lh, 'color','r','linestyle','--');
 ylim([-12 12]);
-title('LV profile');
+title(['BSR for LV with p-value=', num2str(round(p,3))]);
 hold off;
-        
+            
 subplot(1,2,2);
-n_dim = size(plsres.boot_result.orig_corr,1); 
-bar(1:n_dim, plsres.boot_result.orig_corr(:,LV_n),'k'); hold on; 
-set(gca,'xticklabels',{'group1condition1','group1condition2','group2condition1','group2condition2'}, 'fontsize', 12);
-box off; grid on; grid minor;
-for p = 1:n_dim
-  lh1 = line([p,p],[plsres.boot_result.llcorr_adj(p,LV_n),plsres.boot_result.ulcorr_adj(p,LV_n)]); 
-  set(lh1, 'color','r');
+bar(cor(:),'k'); hold on;
+set(gca,'xticklabels',{'behavior1','behavior2','behavior3','behavior4','behavior5', 'behavior6'});            box off; grid on;
+for nd = 1:n_dim
+	lh1 = line([nd,nd],[cor(nd)+1.96*se(nd),cor(nd)-1.96*se(nd)]);
+	set(lh1, 'color','r');
 end
-xlim([0,n_dim+1]); ylim([-1,1]);
-title('LV correlation with memory');
-hold off; 
+ylim([-1 1]);
+title('Mean Correlation +- 1.96*SE');
+hold off;
+clear n_dim lh*; 
 
-% Individual latent profile scores
-id = data(:,1);
+% Latent profile scores
+% indicates an individual's expression of the profile
 group = data(:,2);
-memory = data(:,4);
-latent_profile_score = plsres.usc(:,LV_n);
-
 figure;
 gscatter(plsres.usc(:,LV_n), plsinput.y, group);
-set(gca,'fontsize', 12);
 xlabel(upper('LV profile score'),'fontweight','bold');
-ylabel(upper('memory score'),'fontweight','bold');
+ylabel(upper('outcome'),'fontweight','bold');
 [R,P]=corrcoef(plsres.usc(:,LV_n), plsinput.y, 'rows', 'complete');
-title(strcat('r=',num2str(R(2,1)),', p=',num2str(P(2,1))));   
-
-% Save data
-save(['PLSC_full_results.mat'],'plsres');
+title(strcat('r=',num2str(R(2,1)),', p=',num2str(P(2,1))));
+clear R P group; 
 ```
 
 ## non-rotated (constraint) behavior PLS
@@ -140,26 +139,26 @@ plsinput.X = zscore(plsinput.X,0,1);
 ### running the plsc 
 ```
 % configuration
+% configuration 
 cfg.pls = [];
-cfg.pls.method   = 5; % non-rotated behavior PLS
-cfg.pls.num_perm = 500;  % number of permutations
-cfg.pls.num_boot = 5000; % number of bootstrap tests
-cfg.pls.clim     = 95; % confidence interval level
-cfg.pls.stacked_behavdata = plsinput.y;
+cfg.pls.num_perm 	= 500;  	% number of permutations
+cfg.pls.num_boot 	= 500; 		% number of bootstrap tests
+cfg.pls.clim     	= 95; 		% confidence interval level
+cfg.pls.stacked_behavdata = plsinput.y;	% outcome data 
+cfg.pls.method   	= 5; 		% non-rotated behavior PLS
     
-% condition number  
+% number of conditions  
 n_con = 2; % condition
-cfg.pls.stacked_designdata=[1; -1]; % contrasts 
-%     n_con = 4; % condition
-%     cfg.pls.stacked_designdata=[1 -1 1 -1]; 
+cfg.pls.stacked_designdata=[1 -1 1 -1; 1 1 -1 -1]'; % contrasts 
     
-% group number
-n_subj = histc(data(:,2),unique(data(:,2))) / n_con; % condition, group
+% number of subjects and data preparation
+n_subj = histc(data(:,2),unique(data(:,2))) / n_con;
 datamat1_group1 = plsinput.X(1:n_subj(1),:);
-datamat1_group2 = plsinput.X(n_subj(1)+1:n_subj(1)+n_subj(2),:);
-datamat1_group3 = plsinput.X(n_subj(1)+n_subj(2)+1:end,:);
+datamat1_group2 = plsinput.X(n_subj(1)+1:end,:);
     
 % run plsc 
 % input arguments: data, number of subjects, number of conditions, specific settings
-plsres = pls_analysis({ datamat1_group1, datamat1_group2, datamat1_group3 }, n_subj, n_con, cfg.pls);
+plsres = pls_analysis({ datamat1_group1, datamat1_group2 }, n_subj, n_con, cfg.pls);
+
+save(['PLSC_full_results.mat'], 'plsres');
 ```
