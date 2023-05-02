@@ -1,7 +1,10 @@
 # plscmd-tutorial
-Tutorial for how to do Partial Least Square Correlation (PLSC) with the plscmd toolbox (http://www.rotman-baycrest.on.ca/pls) in Matlab. 
+Tutorial on the Partial Least Square Correlation (PLSC) with the plscmd toolbox (http://www.rotman-baycrest.on.ca/pls) in Matlab. 
 
-PLSC is a multivariate correlation method (Krishnan, Williams, McIntosh & Abdi, 2011) to analyze associations between two sets of variables. We focus on behavior PLSC here i.e., correlations between behavior and brain data, or two types of behavioral data (for other variants like task, seed or multi-block PLSC, see Krishnan et al., 2011) and we explore data-driven and confirmatory versions of behavior PLSC. If you use brain data, you may use the plsgui toolbox, which is pretty well-documented on http://www.rotman-baycrest.on.ca/pls. However, if you want to use any other type of data, you will need to use the plscmd toolbox, which is not so well documented. This tutorial was inspired by code from Muelroth et al. (2020; available on https://osf.io/w76f3/) and Keresztes et al. (2017).
+## General information on PLSC
+PLSC is a multivariate correlation method (Krishnan, Williams, McIntosh & Abdi, 2011) to analyze associations between two sets of indicators. The correlation matrix between the two sets is decomposed into three components using singular value decomposition (SVD), based on which one latent variable (LV) is extracted in a least-square sense. The LV represents a distinct profile of indicators that has the strongest relation to the outcome. One can also look at the LV weights for each indicator, representing the degree and direction (positive or negative association) to which they contribute to the LV. Last, but not least one can calculate a latent profile score (LPS) for each individual, by multiplying the LV weights with the original data matrix (higher values correspond to stronger expression of the profile by the individual) which can then be correlated with other variables of interest (example: correlation of age-related latent profile scores with memory to see if a more mature behavior results in better memory). 
+
+We focus on behavior PLSC here i.e., correlations between behavior and brain data, or two types of behavioral data (for other variants like task, seed or multi-block PLSC, check Krishnan et al., 2011) and we explore data-driven and confirmatory versions of behavior PLSC. If you use brain data, you can use the plsgui toolbox, which is pretty well-documented on http://www.rotman-baycrest.on.ca/pls. However, if you want to use any other type of data, you will need to use the plscmd toolbox, which is not so well documented. This tutorial was inspired by code from Muelroth et al. (2020; available on https://osf.io/w76f3/) and Keresztes et al. (2017).
 
 First, we need to download the plscmd package from http://www.rotman-baycrest.on.ca/pls and add it to our path in Matlab. 
 
@@ -30,10 +33,10 @@ The data needs to be in format "subject in group in condition".
 
 If you have missing values, you need to either exclude cases or use an imputation method to replace the missing values. 
 
-## regular behavior PLS
+## Regular behavior PLSC
 This approach is data-driven. 
 
-### data preparation
+### Data preparation
 ```
 % outcome behavioral data
 plsinput.y = data(:,4);
@@ -46,7 +49,7 @@ plsinput.y = zscore(plsinput.y,0,1);
 plsinput.X = zscore(plsinput.X,0,1);
 ```
 
-### running the plsc 
+### Running the analysis
 ```
 % configuration 
 cfg.pls = [];
@@ -70,18 +73,27 @@ plsres = pls_analysis({ datamat1_allgroups }, n_subj, n_con, cfg.pls);
 save(['PLSC_full_results.mat'], 'plsres');
 ```
 
-### interpreting the output 
-```
-% Latent variable (LV) significance (only interpret LVs < 0.05)
-p=plsres.perm_result.sprob; 
-LV_n = 1;
+### Interpreting the output 
 
-% Latent variable weights 
-% Bootstrap ratios (BSR) (should be < -1.96 or > +1.96)
-% correlations with behavioral data and standard error
+#### Latent variable (LV) 
+The LV represents a distinct profile of indicators that has the strongest relation to the outcome.
+Significance is evaluated with permutations and here set to < 0.05.
+
+```
+% LV significance (only interpret LVs < 0.05)
+p=plsres.perm_result.sprob; 
+
+% here: LV 1 was significant
+LV_n = 1;
+```
+
+#### Latent variable weights (LV weights) 
+The LV weights represent the degree and direction to which they contribute to the LV.
+Significance is evaluated with bootstrap ratios (BSR).
+
+```
+% Bootstrap ratios for LV weights (significant if < -1.96 or > +1.96)
 BSR = plsres.boot_result.compare_u(:,LV_n);
-cor = plsres.datamatcorrs_lst{1,1}'; % u = plsres.u(:,LV_n); 
-se = plsres.boot_result.u_se(:,LV_n); 
 
 figure; subplot(1,2,1);
 n_dim=numel(cor);
@@ -95,10 +107,15 @@ set(lh, 'color','r','linestyle','--');
 ylim([-12 12]);
 title(['BSR for LV with p-value=', num2str(round(p,3))]);
 hold off;
-            
+
+% Alternatively one can look at the correlations with behavioral data and standard error
+cor = plsres.datamatcorrs_lst{1,1}'; % u = plsres.u(:,LV_n); 
+se = plsres.boot_result.u_se(:,LV_n); 
+
 subplot(1,2,2);
 bar(cor(:),'k'); hold on;
-set(gca,'xticklabels',{'behavior1','behavior2','behavior3','behavior4','behavior5', 'behavior6'});            box off; grid on;
+set(gca,'xticklabels',{'behavior1','behavior2','behavior3','behavior4','behavior5', 'behavior6'});            
+box off; grid on;
 for nd = 1:n_dim
 	lh1 = line([nd,nd],[cor(nd)+1.96*se(nd),cor(nd)-1.96*se(nd)]);
 	set(lh1, 'color','r');
@@ -107,9 +124,12 @@ ylim([-1 1]);
 title('Mean Correlation +- 1.96*SE');
 hold off;
 clear n_dim lh*; 
+```
 
-% Latent profile scores
-% indicates an individual's expression of the profile
+#### Latent profile scores (LPS)
+LPS indicate an individual's expression of the profile.
+
+```
 group = data(:,2);
 figure;
 gscatter(plsres.usc(:,LV_n), plsinput.y, group);
@@ -120,10 +140,12 @@ title(strcat('r=',num2str(R(2,1)),', p=',num2str(P(2,1))));
 clear R P group; 
 ```
 
-## non-rotated (constraint) behavior PLS
+The LPS values can be used for further in-depth correlation analyses (not shown). 
+
+## Non-rotated (constraint) behavior PLSC
 This approach is confirmatory and uses pre-defined contrasts. 
 
-### data preparation
+### Data preparation
 ```
 % outcome behavioral data
 plsinput.y = data(:,4);
@@ -136,7 +158,7 @@ plsinput.y = zscore(plsinput.y,0,1);
 plsinput.X = zscore(plsinput.X,0,1);
 ```
 
-### running the plsc 
+### Running the analysis 
 ```
 % configuration
 % configuration 
@@ -162,3 +184,45 @@ plsres = pls_analysis({ datamat1_group1, datamat1_group2 }, n_subj, n_con, cfg.p
 
 save(['PLSC_full_results.mat'], 'plsres');
 ```
+
+### Interpreting the output 
+
+#### Latent variable (LV) 
+The LV represents a distinct profile of indicators that has the strongest relation to the outcome.
+Significance is evaluated with permutations and here set to < 0.05.
+Here, a significant LV mean that the corresponding pre-defined contrast was significant (e.g. group 1 and group 2 differ across condition 1 and condition 2).
+
+```
+% LV significance (only interpret LVs < 0.05)
+p=plsres.perm_result.sprob; 
+
+% here: contrast 2 ([1 1 -1 -1]) was significant
+% this means that group 1 and group 2 differ across condition 1 and condition 2
+LV_n = 2;
+```
+
+#### Latent variable weights (LV weights) 
+The LV weights represent the degree and direction to which they contribute to the LV.
+Significance is evaluated with bootstrap ratios (BSR).
+Here, we can see which indicators contribute to the significant contrast. 
+
+```
+% Bootstrap ratios for LV weights (significant if < -1.96 or > +1.96)
+BSR = plsres.boot_result.compare_u(:,LV_n);
+
+figure; subplot(1,2,1);
+n_dim=numel(cor);
+bar(BSR(:),'k'); hold on;
+set(gca,'xticklabels',{'behavior1','behavior2','behavior3','behavior4','behavior5', 'behavior6'});
+box off; grid on;
+lh = line([0,size(BSR,1)+1],[2,2]);
+set(lh, 'color','r','linestyle','--');
+lh = line([0,size(BSR,1)+1],[-2,-2]);
+set(lh, 'color','r','linestyle','--');
+ylim([-12 12]);
+title(['BSR for LV with p-value=', num2str(round(p,3))]);
+hold off;
+```
+
+#### Latent profile scores (LPS)
+Don't make much sense for non-rotated (constraint) behavior PLSC. 
