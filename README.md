@@ -172,6 +172,7 @@ cfg.pls.method   	= 5; 		% non-rotated behavior PLS
 % number of conditions  
 n_con = 2; % condition
 cfg.pls.stacked_designdata=[1 -1 1 -1; 1 1 -1 -1]'; % contrasts 
+% the data are subjects in group in condition and thus the first contrast compares condition 1 and condition 2 (across groups), whereas the second contrast compares group 1 and group 2 (across conditions). One could also more contrasts to test interactions effects. 
     
 % number of subjects and data preparation
 n_subj = histc(data(:,2),unique(data(:,2))) / n_con;
