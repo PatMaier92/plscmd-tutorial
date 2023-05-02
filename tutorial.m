@@ -82,12 +82,15 @@ for i=1:numel(data_cell)
     % -------------------------------------------------------------------------
     for LV_n=1:numel(plsres.perm_result.sprob)
         
-        % Latent variable significance (should be < than 0.05)
+        % Latent variable (LV)
+        % The LV represents a distinct profile of indicators that has the strongest relation to the outcome. 
+        % Significance is evaluated with permutations and here set to < 0.05.
         p=plsres.perm_result.sprob(LV_n); 
         
-        % Latent variable weights
-        % Bootstrap ratios (BSR) (should be < -1.96 or > +1.96)
-        % correlations with behavioral data and standard error 
+        % Latent variable weights (LV weights) 
+        % The LV weights represent the degree and direction to which they contribute to the LV. 
+        % Significance is evaluated with bootstrap ratios (BSR) (should be < -1.96 or > +1.96).
+        % Alternatively, one can look at correlations with behavioral data and create a confidence interval based on the standard error. 
         BSR = plsres.boot_result.compare_u(:,LV_n);
         if size(plsres.datamatcorrs_lst{1,1},1)==1 % TBD CHECK for different methods/conditions
             cor = plsres.datamatcorrs_lst{1,1}'; 
@@ -114,7 +117,8 @@ for i=1:numel(data_cell)
             
             subplot(1,2,2);
             bar(cor(:),'k'); hold on;
-            set(gca,'xticklabels',{'behavior1','behavior2','behavior3','behavior4','behavior5', 'behavior6'});            box off; grid on;
+            set(gca,'xticklabels',{'behavior1','behavior2','behavior3','behavior4','behavior5', 'behavior6'});            
+            box off; grid on;
             for nd = 1:n_dim
                 lh1 = line([nd,nd],[cor(nd)+1.96*se(nd),cor(nd)-1.96*se(nd)]);
                 set(lh1, 'color','r');
@@ -158,8 +162,9 @@ for i=1:numel(data_cell)
     
     clear p BSR cor u se; 
     
-    % Latent profile scores
-    % indicates an individual's expression of the profile
+    % Latent profile scores (LPS)
+    % LPS indicates an individual's expression of the profile. 
+    % These values can be used for further in-depth correlation analyses (e.g, correlate age-related LPS with memory; not shown).
     if plsres.method==3
         
         group = data(:,2);
